@@ -267,7 +267,7 @@ const InflacionInteractiva = () => {
                     style={{
                       boxShadow: selectedPeriod === period.key 
                         ? '0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.2)'
-                        : '0 4px 15px -3px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.2)',
+                        : '0 10px 25px -6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.2)',
                       backdropFilter: 'blur(20px)',
                       textShadow: 'none'
                     }}
@@ -351,7 +351,7 @@ const InflacionInteractiva = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart 
                   data={filteredData} 
-                  margin={{ top: 20, right: 30, left: 40, bottom: showBrush ? 100 : 80 }} // Increased left margin
+                  margin={{ top: 20, right: 30, left: 40, bottom: showBrush ? 60 : 40 }} // Increased left margin
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.3)" />
                   <XAxis 
@@ -406,7 +406,6 @@ const InflacionInteractiva = () => {
                       stroke="#8b5cf6"
                       fill="rgba(139, 92, 246, 0.25)"
                       travellerWidth={15}
-                      y={470} 
                     />
                   )}
                 </LineChart>
