@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, Brush } from 'recharts';
 
@@ -103,9 +104,13 @@ const InflacionInteractiva = () => {
       case '2025':
         return data.filter(d => d.fecha.includes('2025'));
       case 'milei':
-        return data.filter(d => 
-          new Date(`${d.fecha.split(' ')[1]}-${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(d.fecha.split(' ')[0].substring(0,3)) + 1}-01`) >= new Date('2023-12-01')
-        );
+        return data.filter(d => {
+          const [monthStr, yearStr] = d.fecha.split(' ');
+          const monthIndex = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(monthStr.substring(0,3));
+          if (monthIndex === -1) return false; 
+          const date = new Date(parseInt(yearStr), monthIndex, 1);
+          return date >= new Date('2023-12-01');
+        });
       default:
         return data;
     }
@@ -117,54 +122,63 @@ const InflacionInteractiva = () => {
     if (active && payload && payload.length) {
       const dataPoint = data.find(d => d.fecha === label);
       return (
-        <div className="bg-white p-4 border rounded-lg shadow-xl max-w-sm">
-          <p className="font-bold text-gray-800 mb-3 text-lg">{label}</p>
+        <div className="backdrop-blur-3xl bg-white/90 border border-black/20 rounded-2xl shadow-2xl p-5 max-w-sm" 
+             style={{
+               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.2)',
+               backdropFilter: 'blur(40px) saturate(150%)'
+             }}>
+          <p className="font-bold text-black mb-4 text-lg tracking-tight">{label}</p>
           
-          {/* Cotización del dólar cripto */}
           {dataPoint && (
-            <div className="bg-green-50 border border-green-200 rounded p-2 mb-3">
-              <p className="text-sm font-semibold text-green-800">
-                ⚡ Dólar Cripto: <span className="text-lg">${dataPoint.cotizacionCripto}</span>
+            <div className="backdrop-blur-md bg-emerald-50/70 border border-emerald-200/50 rounded-xl p-3 mb-4"
+                 style={{ backdropFilter: 'blur(20px)' }}>
+              <p className="text-sm font-semibold text-black">
+                ⚡ Dólar Cripto: <span className="text-lg font-mono">${dataPoint.cotizacionCripto}</span>
               </p>
             </div>
           )}
 
-          {/* Datos de inflación */}
-          <div className="space-y-2 mb-3">
+          <div className="space-y-3 mb-4">
             {payload.map((entry, index) => (
-              <div key={index} className="flex items-center">
+              <div key={index} className="flex items-center backdrop-blur-sm bg-white/50 rounded-lg px-3 py-2">
                 <div 
-                  className="w-3 h-3 rounded mr-2" 
-                  style={{ backgroundColor: entry.color }}
+                  className="w-4 h-4 rounded-full mr-3 shadow-sm" 
+                  style={{ 
+                    backgroundColor: entry.color,
+                    boxShadow: `0 0 10px ${entry.color}40`
+                  }}
                 ></div>
-                <span className="text-sm">
-                  <strong>{entry.name}:</strong> {entry.value.toFixed(1)}%
-                  {entry.value < 0 && <span className="text-red-600 font-semibold"> (deflación)</span>}
+                <span className="text-sm font-medium">
+                  <strong className="text-black">{entry.name}:</strong> 
+                  <span className="font-mono ml-1">{entry.value.toFixed(1)}%</span>
+                  {entry.value < 0 && <span className="text-black font-semibold ml-1">(deflación)</span>}
                 </span>
               </div>
             ))}
           </div>
 
-          {/* Contexto económico */}
           {dataPoint && (
             <>
-              <div className="border-t pt-3 mb-3">
-                <p className="text-sm font-semibold text-gray-700 mb-1">
-                  📊 {dataPoint.evento}
-                </p>
+              <div className="border-t border-gray-200/50 pt-4 mb-4">
+                <div className="backdrop-blur-sm bg-gradient-to-r from-blue-50/70 to-purple-50/70 rounded-xl px-3 py-2">
+                  <p className="text-sm font-semibold text-black">
+                    📊 {dataPoint.evento}
+                  </p>
+                </div>
               </div>
               
-              {/* Hitos económicos detallados */}
-              <div className="border-t pt-2">
-                <p className="text-xs font-semibold text-gray-600 mb-2">🎯 Hitos del mes:</p>
-                <ul className="text-xs text-gray-600 space-y-1 max-h-24 overflow-y-auto">
-                  {dataPoint.hitos?.map((hito, index) => (
-                    <li key={index} className="flex items-start">
-                      <span className="text-blue-500 mr-1">•</span>
-                      <span>{hito}</span>
-                    </li>
-                  ))}
-                </ul>
+              <div className="border-t border-gray-200/50 pt-3">
+                <p className="text-xs font-semibold text-black mb-3">🎯 Hitos del mes:</p>
+                <div className="max-h-32 overflow-y-auto scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+                  <div className="space-y-2">
+                    {dataPoint.hitos?.map((hito, index) => (
+                      <div key={index} className="flex items-start backdrop-blur-sm bg-gray-50/50 rounded-lg px-2 py-1">
+                        <span className="text-black mr-2 font-bold">•</span>
+                        <span className="text-xs text-black leading-relaxed">{hito}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </>
           )}
@@ -178,12 +192,6 @@ const InflacionInteractiva = () => {
     return `${value}%`;
   };
 
-  const getDeflationPoints = () => {
-    return data.filter(d => d.dolarCripto < 0).map(d => d.fecha);
-  };
-
-  const deflationPoints = getDeflationPoints();
-
   const CustomDot = (props) => {
     const { cx, cy, payload } = props;
     if (highlightDeflation && payload.dolarCripto < 0) {
@@ -191,185 +199,222 @@ const InflacionInteractiva = () => {
         <circle 
           cx={cx} 
           cy={cy} 
-          r={6} 
-          fill="#ef4444" 
+          r={8} 
+          fill="url(#deflationGradient)" 
           stroke="#fff" 
-          strokeWidth={2}
-          className="animate-pulse"
+          strokeWidth={3}
+          className="animate-pulse drop-shadow-lg"
+          style={{ filter: 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.6))' }}
         />
       );
     }
     return null;
   };
 
+  const renderLegendText = (value, entry) => {
+    return <span style={{ color: 'black', fontFamily: 'Inter, sans-serif' }}>{value}</span>;
+  };
+
   return (
-    <div className="w-full p-6 bg-gradient-to-br from-gray-50 to-blue-50">
-      <div className="bg-white rounded-xl shadow-2xl p-6">
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">
-            Inflación Mensual: Pesos vs Dólar Cripto 
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Comparación interactiva usando dólar cripto (más líquido, 24/7, precio real)
-          </p>
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4" 
+         style={{
+           background: `
+             radial-gradient(circle at 20% 20%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+             radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
+             radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.1) 0%, transparent 50%),
+             linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)
+           `
+         }}>
+      
+      <div className="max-w-7xl mx-auto">
+        <div className="backdrop-blur-3xl bg-white/70 border border-white/20 rounded-3xl shadow-2xl overflow-hidden mb-8"
+             style={{
+               boxShadow: `
+                 0 32px 64px -12px rgba(0, 0, 0, 0.25),
+                 0 0 0 1px rgba(255, 255, 255, 0.3),
+                 inset 0 1px 0 rgba(255, 255, 255, 0.4)
+               `,
+               backdropFilter: 'blur(40px) saturate(150%)'
+             }}>
           
-          {/* Controles interactivos */}
-          <div className="flex flex-wrap gap-4 mb-6">
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setSelectedPeriod('all')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedPeriod === 'all' 
-                    ? 'bg-blue-600 text-white shadow-md' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Todo el período
-              </button>
-              <button
-                onClick={() => setSelectedPeriod('2023')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedPeriod === '2023' 
-                    ? 'bg-red-600 text-white shadow-md' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Solo 2023
-              </button>
-              <button
-                onClick={() => setSelectedPeriod('2024')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedPeriod === '2024' 
-                    ? 'bg-green-600 text-white shadow-md' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Solo 2024
-              </button>
-              <button
-                onClick={() => setSelectedPeriod('2025')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedPeriod === '2025' 
-                    ? 'bg-purple-600 text-white shadow-md' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Solo 2025
-              </button>
-              <button
-                onClick={() => setSelectedPeriod('milei')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedPeriod === 'milei' 
-                    ? 'bg-yellow-600 text-white shadow-md' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Era Milei
-              </button>
-            </div>
-            
-            <div className="flex gap-2">
-              <button
-                onClick={() => setHighlightDeflation(!highlightDeflation)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  highlightDeflation 
-                    ? 'bg-red-600 text-white shadow-md' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {highlightDeflation ? '🔴 Deflaciones marcadas' : 'Marcar deflaciones'}
-              </button>
-              <button
-                onClick={() => setShowBrush(!showBrush)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  showBrush 
-                    ? 'bg-indigo-600 text-white shadow-md' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {showBrush ? '📊 Zoom ON' : 'Activar zoom'}
-              </button>
-            </div>
-          </div>
-
-          {/* Estadísticas destacadas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-              <h3 className="font-semibold text-blue-800">Mayo 2025 - Pesos</h3>
-              <p className="text-2xl font-bold text-blue-600">+1.8%</p>
-              <p className="text-sm text-blue-600">Mínimo en 5 años</p>
-            </div>
-            <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
-              <h3 className="font-semibold text-red-800">Mayo 2025 - Dólar Cripto</h3>
-              <p className="text-2xl font-bold text-red-600">-2.1%</p>
-              <p className="text-sm text-red-600">🎉 DEFLACIÓN histórica</p>
-            </div>
-          </div>
-
-          {highlightDeflation && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-              <h3 className="font-semibold text-red-800 mb-2">🔍 Meses con Deflación en Dólar Cripto</h3>
-              <p className="text-sm text-red-700">
-                Meses donde el costo de vida bajó en dólares cripto (más confiable que blue por mayor liquidez)
+          <div className="px-8 pt-8 pb-6">
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold text-black mb-3 tracking-tight">
+                Inflación Argentina
+              </h1>
+              <p className="text-lg text-black font-medium">
+                Pesos vs Dólar Cripto • Análisis Interactivo
               </p>
             </div>
-          )}
-        </div>
+            
+            <div className="space-y-6">
+              <div className="flex flex-wrap justify-center gap-3">
+                {[
+                  { key: 'all', label: 'Todo', color: 'from-blue-300 to-blue-400' },
+                  { key: '2023', label: '2023', color: 'from-red-300 to-red-400' },
+                  { key: '2024', label: '2024', color: 'from-green-300 to-green-400' },
+                  { key: '2025', label: '2025', color: 'from-purple-300 to-purple-400' },
+                  { key: 'milei', label: 'Era Milei', color: 'from-yellow-300 to-orange-300' }
+                ].map((period) => (
+                  <button
+                    key={period.key}
+                    onClick={() => setSelectedPeriod(period.key)}
+                    className={`px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-300 transform ${
+                      selectedPeriod === period.key 
+                        ? `bg-gradient-to-r ${period.color} text-black shadow-2xl scale-105 border border-black/20` 
+                        : 'backdrop-blur-md bg-white/60 text-black hover:bg-white/80 hover:scale-102 border border-black/30'
+                    }`}
+                    style={{
+                      boxShadow: selectedPeriod === period.key 
+                        ? '0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.2)'
+                        : '0 10px 25px -6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.2)',
+                      backdropFilter: 'blur(20px)',
+                      textShadow: 'none'
+                    }}
+                    aria-pressed={selectedPeriod === period.key}
+                  >
+                    {period.label}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => setHighlightDeflation(!highlightDeflation)}
+                  aria-pressed={highlightDeflation}
+                  className={`px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-300 transform ${
+                    highlightDeflation 
+                      ? 'bg-gradient-to-r from-red-300 to-pink-400 text-black shadow-2xl scale-105 border border-black/20' 
+                      : 'backdrop-blur-md bg-white/60 text-black hover:bg-white/80 hover:scale-102 border border-black/30'
+                  }`}
+                  style={{
+                    boxShadow: highlightDeflation 
+                      ? '0 10px 25px -5px rgba(239, 68, 68, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.2)'
+                      : '0 4px 15px -3px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.2)',
+                    backdropFilter: 'blur(20px)',
+                    textShadow: 'none'
+                  }}
+                >
+                  {highlightDeflation ? '🔴 Deflaciones ON' : 'Marcar Deflaciones'}
+                </button>
+                
+                <button
+                  onClick={() => setShowBrush(!showBrush)}
+                  aria-pressed={showBrush}
+                  className={`px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-300 transform ${
+                    showBrush 
+                      ? 'bg-gradient-to-r from-indigo-300 to-purple-400 text-black shadow-2xl scale-105 border border-black/20' 
+                      : 'backdrop-blur-md bg-white/60 text-black hover:bg-white/80 hover:scale-102 border border-black/30'
+                  }`}
+                  style={{
+                    boxShadow: showBrush 
+                      ? '0 10px 25px -5px rgba(99, 102, 241, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.2)'
+                      : '0 4px 15px -3px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.2)',
+                    backdropFilter: 'blur(20px)',
+                    textShadow: 'none'
+                  }}
+                >
+                  {showBrush ? '📊 Zoom ON' : 'Activar Zoom'}
+                </button>
+              </div>
+            </div>
 
-        <div className="h-96 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={filteredData} margin={{ top: 5, right: 30, left: 20, bottom: showBrush ? 60 : 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-              <XAxis 
-                dataKey="fecha" 
-                stroke="#666"
-                fontSize={12}
-                angle={-45}
-                textAnchor="end"
-                height={showBrush ? 60 : 80}
-              />
-              <YAxis 
-                stroke="#666"
-                fontSize={12}
-                tickFormatter={formatYAxis}
-                domain={['dataMin - 5', 'dataMax + 5']}
-              />
-              <ReferenceLine y={0} stroke="#000" strokeDasharray="2 2" strokeWidth={2} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend 
-                wrapperStyle={{ paddingTop: '20px' }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="pesos" 
-                stroke="#3b82f6" 
-                strokeWidth={4}
-                name="📈 Inflación en Pesos"
-                dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 8, stroke: '#3b82f6', strokeWidth: 3, fill: '#fff' }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="dolarCripto" 
-                stroke="#ef4444" 
-                strokeWidth={4}
-                name="⚡ Inflación en Dólar Cripto"
-                dot={highlightDeflation ? CustomDot : { fill: '#ef4444', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 8, stroke: '#ef4444', strokeWidth: 3, fill: '#fff' }}
-              />
-              {showBrush && (
-                <Brush 
-                  dataKey="fecha" 
-                  height={30} 
-                  stroke="#8884d8"
-                  fill="#f0f0f0"
-                />
-              )}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+              <div className="backdrop-blur-md bg-gradient-to-br from-blue-50/70 to-cyan-50/70 border border-black/30 rounded-2xl p-6"
+                   style={{ backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(59, 130, 246, 0.1)' }}>
+                <h3 className="font-bold text-black text-lg mb-2">Mayo 2025 - Pesos</h3>
+                <p className="text-3xl font-bold text-black">+1.8%</p>
+                <p className="text-sm text-black font-medium">Mínimo en 5 años</p>
+              </div>
+              <div className="backdrop-blur-md bg-gradient-to-br from-red-50/70 to-pink-50/70 border border-black/30 rounded-2xl p-6"
+                   style={{ backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(239, 68, 68, 0.1)' }}>
+                <h3 className="font-bold text-black text-lg mb-2">Mayo 2025 - Dólar Cripto</h3>
+                <p className="text-3xl font-bold text-black">-2.1%</p>
+                <p className="text-sm text-black font-medium">🎉 DEFLACIÓN histórica</p>
+              </div>
+            </div>
 
-      {/* Information Section */}
+            {highlightDeflation && (
+              <div className="mt-6 backdrop-blur-md bg-red-50/80 border border-black/50 rounded-2xl p-6"
+                   style={{ backdropFilter: 'blur(20px)' }}>
+                <h3 className="font-bold text-black mb-3 text-lg">🔍 Meses con Deflación en Dólar Cripto</h3>
+                <p className="text-black leading-relaxed">
+                  Períodos donde el costo de vida bajó en dólares cripto. El dólar cripto es más confiable que el blue por su mayor liquidez y operación 24/7.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="px-8 pb-8">
+            <div className="backdrop-blur-sm bg-white/40 border border-white/20 rounded-2xl p-8 h-[550px]"
+                 style={{ backdropFilter: 'blur(10px)' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart 
+                  data={filteredData} 
+                  margin={{ top: 20, right: 30, left: 40, bottom: showBrush ? 60 : 40 }} // Increased left margin
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.3)" />
+                  <XAxis 
+                    dataKey="fecha" 
+                    stroke="#64748b"
+                    fontSize={12} 
+                    angle={-45}
+                    textAnchor="end"
+                    height={80} 
+                    interval={0} 
+                    tickMargin={20}
+                    fontFamily="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui"
+                  />
+                  <YAxis 
+                    stroke="#64748b"
+                    fontSize={12}
+                    tickFormatter={formatYAxis}
+                    domain={['dataMin - 5', 'dataMax + 5']}
+                    fontFamily="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui"
+                    label={{ value: 'Variación (%)', angle: -90, position: 'insideLeft', offset: -10, style: { textAnchor: 'middle', fill: '#64748b', fontSize: 13, fontFamily: 'Inter, sans-serif' } }}
+                  />
+                  <ReferenceLine y={0} stroke="#1e293b" strokeDasharray="3 3" strokeWidth={2} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    wrapperStyle={{ 
+                      paddingTop: '20px'
+                    }}
+                    formatter={renderLegendText}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="pesos" 
+                    stroke="url(#pesosGradient)" 
+                    strokeWidth={4}
+                    name="📈 Inflación en Pesos"
+                    dot={false}
+                    activeDot={{ r: 8, stroke: 'rgba(99, 102, 241, 0.3)', strokeWidth: 8 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="dolarCripto" 
+                    stroke="url(#dolarGradient)" 
+                    strokeWidth={4}
+                    name="📉 Inflación en Dólar Cripto"
+                    dot={<CustomDot />}
+                    activeDot={{ r: 8, stroke: 'rgba(236, 72, 153, 0.3)', strokeWidth: 8 }}
+                  />
+                  {showBrush && (
+                    <Brush 
+                      dataKey="fecha" 
+                      height={30} 
+                      stroke="#8b5cf6"
+                      fill="rgba(139, 92, 246, 0.25)"
+                      travellerWidth={15}
+                    />
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div> {/* End of main content card */}
+
+        {/* Information Section */}
         <div className="mt-8 px-8">
           <div className="backdrop-blur-xl bg-white/50 border border-black/25 rounded-2xl shadow-lg p-6 mb-8"
                style={{ backdropFilter: 'blur(15px) saturate(150%)' }}>
